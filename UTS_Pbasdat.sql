@@ -1,0 +1,225 @@
+-- Tabel Pelanggan
+CREATE TABLE pelanggan (
+    id_pelanggan SERIAL PRIMARY KEY,
+    nama_pelanggan VARCHAR(100) NOT NULL,
+    no_hp VARCHAR(20) NOT NULL
+);
+
+-- Tabel Menu
+CREATE TABLE menu (
+    id_menu SERIAL PRIMARY KEY,
+    nama_menu VARCHAR(100) NOT NULL,
+    harga NUMERIC(10, 2) NOT NULL,
+    kategori VARCHAR(50)
+);
+
+-- Tabel Pegawai
+CREATE TABLE pegawai (
+    id_pegawai SERIAL PRIMARY KEY,
+    nama_pegawai VARCHAR(100) NOT NULL,
+    posisi VARCHAR(50) NOT NULL
+);
+
+-- Tabel Transaksi
+CREATE TABLE transaksi (
+    id_transaksi SERIAL PRIMARY KEY,
+    id_pelanggan INT NOT NULL,
+    tanggal_transaksi TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total NUMERIC(12, 2) NOT NULL,
+    FOREIGN KEY (id_pelanggan) REFERENCES pelanggan(id_pelanggan)
+);
+
+-- Tabel Detail Transaksi
+CREATE TABLE detail_transaksi (
+    id_detail SERIAL PRIMARY KEY,
+    id_transaksi INT NOT NULL,
+    id_menu INT NOT NULL,
+    jumlah INT NOT NULL,
+    subtotal NUMERIC(12, 2) NOT NULL,
+    FOREIGN KEY (id_transaksi) REFERENCES transaksi(id_transaksi),
+    FOREIGN KEY (id_menu) REFERENCES menu(id_menu)
+);
+
+INSERT INTO pelanggan (nama_pelanggan, no_hp)
+SELECT 
+    'Pelanggan_' || gs,
+    '08' || LPAD(gs::text, 10, '0')
+FROM generate_series(1, 10000) AS gs;
+
+INSERT INTO menu (nama_menu, harga, kategori)
+SELECT 
+    'Menu_' || gs,
+    (gs * 500)::INT,
+    CASE 
+        WHEN gs % 3 = 0 THEN 'Minuman'
+        WHEN gs % 3 = 1 THEN 'Makanan'
+        ELSE 'Snack'
+    END
+FROM generate_series(1, 10000) AS gs;
+
+INSERT INTO pegawai (nama_pegawai, posisi)
+SELECT 
+    'Pegawai_' || gs,
+    CASE 
+        WHEN gs % 2 = 0 THEN 'Kasir'
+        ELSE 'Pelayan'
+    END
+FROM generate_series(1, 10000) AS gs;
+
+INSERT INTO transaksi (id_pelanggan, tanggal_transaksi, total)
+SELECT 
+    (RANDOM() * (10000 - 1) + 1)::INT,
+    CURRENT_DATE - (RANDOM() * 365)::INT,
+    (RANDOM() * 100000 + 10000)::INT
+FROM generate_series(1, 10000);
+
+INSERT INTO detail_transaksi (id_transaksi, id_menu, jumlah, subtotal)
+SELECT 
+    (RANDOM() * (10000 - 1) + 1)::INT,
+    (RANDOM() * 99 + 1)::INT,
+    (RANDOM() * 5 + 1)::INT,
+    (RANDOM() * 50000 + 5000)::INT
+FROM generate_series(1, 10000);
+
+
+SELECT nama_pelanggan
+FROM pelanggan;
+
+-- Nested Query 1
+SELECT nama_pelanggan
+FROM pelanggan 
+WHERE id_pelanggan IN (SELECT id_pelanggan FROM transaksi WHERE total > 50000);
+
+-- Nested Query 2
+SELECT nama_menu 
+FROM menu 
+WHERE id_menu IN (SELECT id_menu FROM detail_transaksi WHERE jumlah > 3);
+
+-- Nested Query 3
+SELECT COUNT(*) 
+FROM transaksi 
+WHERE id_pelanggan IN (
+    SELECT id_pelanggan 
+    FROM pelanggan 
+    WHERE nama_pelanggan LIKE 'Pelanggan_1%'
+);
+
+
+-- Nested Query 4
+SELECT tanggal_transaksi 
+FROM transaksi 
+WHERE id_transaksi IN (
+    SELECT id_transaksi 
+    FROM detail_transaksi 
+    WHERE jumlah >= 5
+);
+
+
+-- Nested Query 5
+SELECT nama_menu 
+FROM menu 
+WHERE id_menu NOT IN (
+    SELECT id_menu 
+    FROM detail_transaksi
+);
+
+
+-- Nested Query 6
+SELECT nama_pelanggan 
+FROM pelanggan 
+WHERE id_pelanggan IN (
+    SELECT id_pelanggan 
+    FROM transaksi 
+    WHERE tanggal_transaksi > CURRENT_DATE - INTERVAL '30 days'
+);
+
+
+-- Nested Query 7
+SELECT id_transaksi 
+FROM transaksi 
+WHERE total = (
+    SELECT MAX(total) 
+    FROM transaksi
+);
+
+
+-- Nested Query 8
+SELECT nama_menu 
+FROM menu 
+WHERE harga > (
+    SELECT AVG(harga) 
+    FROM menu
+);
+
+-- Nested Query 9
+SELECT COUNT(*) 
+FROM detail_transaksi 
+WHERE id_menu IN (
+    SELECT id_menu 
+    FROM menu 
+    WHERE kategori = 'Minuman'
+);
+
+-- Nested Query 10
+SELECT nama_pelanggan 
+FROM pelanggan 
+WHERE id_pelanggan IN (
+    SELECT id_pelanggan 
+    FROM transaksi 
+    WHERE id_transaksi IN (
+        SELECT id_transaksi 
+        FROM detail_transaksi 
+        WHERE jumlah > 2
+    )
+);
+
+-- Nested Query 11
+SELECT nama_menu 
+FROM menu 
+WHERE id_menu IN (
+    SELECT id_menu 
+    FROM detail_transaksi 
+    WHERE subtotal > 50000
+);
+
+-- Nested Query 12
+SELECT tanggal_transaksi 
+FROM transaksi 
+WHERE id_transaksi IN (
+    SELECT id_transaksi 
+    FROM detail_transaksi 
+    WHERE id_menu IN (
+        SELECT id_menu 
+        FROM menu 
+        WHERE kategori = 'Snack'
+    )
+);
+
+-- Nested Query 13
+SELECT posisi 
+FROM pegawai 
+WHERE id_pegawai IN (
+    SELECT id_pegawai 
+    FROM (
+        SELECT id_pegawai 
+        FROM pegawai 
+        LIMIT 10
+    ) AS sub
+);
+
+-- Nested Query 14
+SELECT nama_pelanggan 
+FROM pelanggan 
+WHERE id_pelanggan NOT IN (
+    SELECT id_pelanggan 
+    FROM transaksi
+);
+
+-- Nested Query 15
+SELECT COUNT(*) 
+FROM transaksi 
+WHERE id_pelanggan IN (
+    SELECT id_pelanggan 
+    FROM pelanggan 
+    WHERE no_hp LIKE '081%'
+);
